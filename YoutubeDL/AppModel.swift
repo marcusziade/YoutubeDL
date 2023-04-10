@@ -200,31 +200,26 @@ class AppModel: ObservableObject {
             url.absoluteString,
         ]
         print(#function, argv)
-        try await yt_dlp(argv: argv) { dict in
+        try await yt_dlp(argv: argv) { [unowned self] dict in
             info = dict["info_dict"]
-//            if self.info == nil {
-//                DispatchQueue.main.async {
-//                    self.info = try? PythonDecoder().decode(Info.self, from: info!)
-//                }
-//            }
             
             let status = String(dict["status"]!)
             
-            self.progress.localizedDescription = nil
+            progress.localizedDescription = nil
             
             switch status {
             case "downloading":
-                self.progress.kind = .file
-                self.progress.fileOperationKind = .downloading
+                progress.kind = .file
+                progress.fileOperationKind = .downloading
                 if #available(iOS 16.0, *) {
-                    self.progress.fileURL = URL(filePath: String(dict["tmpfilename"]!)!)
+                    progress.fileURL = URL(filePath: String(dict["tmpfilename"]!)!)
                 } else {
                     // Fallback on earlier versions
                 }
-                self.progress.completedUnitCount = Int64(dict["downloaded_bytes"]!) ?? -1
-                self.progress.totalUnitCount = Int64(Double(dict["total_bytes"] ?? dict["total_bytes_estimate"] ?? Python.None) ?? -1)
-                self.progress.throughput = Int(dict["speed"]!)
-                self.progress.estimatedTimeRemaining = TimeInterval(dict["eta"]!)
+                progress.completedUnitCount = Int64(dict["downloaded_bytes"]!) ?? -1
+                progress.totalUnitCount = Int64(Double(dict["total_bytes"] ?? dict["total_bytes_estimate"] ?? Python.None) ?? -1)
+                progress.throughput = Int(dict["speed"]!)
+                progress.estimatedTimeRemaining = TimeInterval(dict["eta"]!)
             case "finished":
                 print(#function, dict["filename"] ?? "no filename")
                 files.append(String(dict["filename"]!)!)
@@ -238,11 +233,11 @@ class AppModel: ObservableObject {
             if level == "error" || message.hasSuffix("has already been downloaded") {
                 error = message
             }
-        } makeTranscodeProgressBlock: {
-            self.progress.kind = nil
-            self.progress.localizedDescription = NSLocalizedString("Transcoding...", comment: "Progress description")
-            self.progress.completedUnitCount = 0
-            self.progress.totalUnitCount = 100
+        } makeTranscodeProgressBlock: { [unowned self] in
+            progress.kind = nil
+            progress.localizedDescription = NSLocalizedString("Transcoding...", comment: "Progress description")
+            progress.completedUnitCount = 0
+            progress.totalUnitCount = 100
             
             let t0 = ProcessInfo.processInfo.systemUptime
             
